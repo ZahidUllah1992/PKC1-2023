@@ -4,7 +4,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
-import pandas_profiling
 import warnings
 warnings.filterwarnings('ignore') # to ignore warnings
 
