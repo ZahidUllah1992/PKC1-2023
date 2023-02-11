@@ -1,0 +1,10 @@
+ supervised learning algorithm
+ un supervised learning algorithm
+ semi supervised learning algorithm
+ reinforcement learning algorithm
+
+ X is dependent varibale and y is independent is this true
+
+ 
+ 
+ ML evaluation matrics for classificaion and regression(top 5) in scikit-learn 

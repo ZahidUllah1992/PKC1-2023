@@ -1,0 +1,7 @@
+ML vs DL vs AI Assignment
+featuere/input and labels/output other names(X anmd y)
+why boston data set removed from sk learn
+sk learn datasets?
+
+
+day 17  supervised learning algorithm

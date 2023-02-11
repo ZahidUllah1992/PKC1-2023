@@ -1,0 +1,7 @@
+MAE:  7.523632843343948
+MSE:  81.65221072356584
+RMSE:  81.65221072356584
+R_squared:  -0.008674946004287198 
+are these values true and what are the min and max
+ multi linear regression with IRIS DATASET 
+decsion tree classificaion

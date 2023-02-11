@@ -1,0 +1,4 @@
+why we change categorial variable to int in ML
+decision tree classifier on titanic
+what is harmonic mean
+K-fold cross validation

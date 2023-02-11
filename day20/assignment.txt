@@ -1,0 +1,4 @@
+random stat
+lambda function
+run ML code on any other dataset and dont use iris or titanic
+make kaggle id 

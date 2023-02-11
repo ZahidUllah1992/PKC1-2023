@@ -1,0 +1,2 @@
+what every collumn mean in titanic,
+how many data sets in sns.load_datasets

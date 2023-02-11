@@ -1,0 +1,3 @@
+#relation of two numeric vari   
+sns.lmplot(data=df, x='age', y=int(df['fare'])>300) condional 
+add column family_size in titanic

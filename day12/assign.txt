@@ -1,0 +1,6 @@
+# how to deal with missing values in ENDA analysis?
+
+Catagorical/object, numerical (float, int), Boolean
+
+Normalize ( techniques : # Assignment)
+removing outliers
