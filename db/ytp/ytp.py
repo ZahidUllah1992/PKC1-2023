@@ -1,6 +1,6 @@
 import streamlit as st
 import requests
-from pytube import YouTube, StreamQuery
+from pytube import YouTube, StreamQuery, Playlist
 import base64
 import os
 
@@ -12,9 +12,9 @@ def clear_text():
 def download_file(stream, fmt):
     """  """
     if fmt == 'audio':
-        title = stream.title + ' audio.'+ stream_final.subtype
+        title = stream.title + ' audio.'+ stream.subtype
     else:
-        title = stream.title + '.'+ stream_final.subtype
+        title = stream.title + '.'+ stream.subtype
 
     stream.download(filename=title)
     
@@ -36,83 +36,55 @@ def can_access(url):
     access = False
     if len(url) > 0:
         try:
-            tube = YouTube(url)
-            if tube.check_availability() is None:
-                access=True
+            Playlist(url)
+            access=True
         except:
             pass
     return access
 
-def refine_format(fmt_type: str='audio') -> (str, bool):
+def refine_format() -> (str, bool):
     """ """
-    if fmt_type == 'video (only)':
-        fmt = 'video'
-        progressive = False
-    elif fmt_type == 'video + audio':
-        fmt = 'video'
-        progressive = True
-    else:
-        fmt = 'audio'
-        progressive = False
+    fmt = 'video'
+    progressive = True
 
     return fmt, progressive
 
 
-st.set_page_config(page_title=" Youtube downloader", layout="wide")
+st.set_page_config(page_title="Youtube downloader", layout="wide")
 
 # ====== SIDEBAR ======
 with st.sidebar:
 
     st.title("Youtube download app")
 
-    url = st.text_input("Insert your link here", key="url")
+    url = st.text_input("Insert your playlist link here", key="url")
 
-    fmt_type = st.selectbox("Choose format:", ['video (only)', 'audio (only)', 'video + audio'], key='fmt')
-
-    fmt, progressive = refine_format(fmt_type)
+    fmt, progressive = refine_format()
 
     if can_access(url):
 
-        tube = YouTube(url)
+        playlist = Playlist(url)
+        playlist.populate_video_urls()
 
-        streams_fmt = [t for t in tube.streams if t.type==fmt and t.is_progressive==progressive]
-
-        mime_types = set([t.mime_type for t in streams_fmt])
-        mime_type = st.selectbox("Mime types:", mime_types, key='mime')
-
-        streams_mime = StreamQuery(streams_fmt).filter(mime_type=mime_type)
-
-        # quality is average bitrate for audio and resolution for video
-        if fmt=='audio':
-            quality = set([t.abr for t in streams_mime])
-            quality_type = st.selectbox('Choose average bitrate: ', quality, key='quality')
-            stream_quality = StreamQuery(streams_mime).filter(abr=quality_type)
-        elif fmt=='video':
-            quality = set([t.resolution for t in streams_mime])
-            quality_type = st.selectbox('Choose resolution: ', quality, key='quality')
-            stream_quality = StreamQuery(streams_mime).filter(res=quality_type)
-
-        # === Download block === #
-        if stream_quality is not None:
-            stream_final = stream_quality[0]
-            if 'DESKTOP_SESSION' in os.environ:
-                download = st.button("Download file", key='download')
-            else:
-                download = st.button("Get download link", key='download')
-
-            if download:
-                download_file(stream_final, fmt)
-                st.success('Success download!')
-                st.balloons()
-
-        st.button("Clear all address boxes", on_click=clear_text)
-
-
-
-
-# ====== MAIN PAGE ======
-
-if can_access(url):
-    if streams_fmt is None:
-        st.write(f"No {fmt_type} stream found")
-    st.video(url)
+        mime_types = set([t.mime_type for t in playlist.videos[0].streams])
+        mime_type = st.selectbox("Select a file type:", list(mime_types), key="mime")
+        
+        quality_values = [s.resolution for s in playlist.videos[0].streams if s.mime_type == mime_type]
+        quality = st.selectbox("Select a quality:", quality_values, key="quality")
+        
+        selected_streams = [s for s in playlist.videos[0].streams if s.mime_type == mime_type and s.resolution == quality]
+        
+        if len(selected_streams) > 0:
+            st.write("Selected video stream:", selected_streams[0])
+            st.write("Download starts...")
+            download_file(selected_streams[0], fmt)
+            st.write("Download finished.")
+        
+        else:
+            st.write("No video stream found for the selected quality.")
+    
+    else:
+        st.write("Invalid URL.")
+    
+    if st.button("Clear"):
+        clear_text()
