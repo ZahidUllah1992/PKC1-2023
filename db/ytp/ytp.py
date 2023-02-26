@@ -9,7 +9,24 @@ def download_video(stream, title):
         file_path = stream.download(output_path=download_folder)
     st.success(f'{title} downloaded successfully!')
     return file_path
+def download_file(stream, fmt):
+    if fmt == 'audio':
+        title = stream.title + '_audio.'+ stream.subtype
+    else:
+        title = stream.title + '.'+ stream.subtype
 
+    stream.download(filename=title)
+    
+    if 'DESKTOP_SESSION' not in os.environ:
+        with open(title, 'rb') as f:
+            bytes = f.read()
+            b64 = base64.b64encode(bytes).decode()
+            href = f'<a href="data:file/mp4;base64,{b64}" download=\'{title}\'>\
+                Here is your link \
+            </a>'
+            st.markdown(href, unsafe_allow_html=True)
+
+        os.remove(title)
 def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
     downloaded_videos = []
@@ -17,18 +34,9 @@ def download_all_videos(playlist_url, resolution):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
             if stream:
-                download_file(stream, 'video')
-                downloaded_videos.append({'title': video.title, 'file_path': stream.default_filename})
-    with ZipFile('videos.zip', 'w') as zip:
-        for video in downloaded_videos:
-            zip.write(video['file_path'])
-            os.remove(video['file_path'])
-    st.success('All videos downloaded successfully!')
-    with open('videos.zip', 'rb') as f:
-        bytes = f.read()
-        b64 = base64.b64encode(bytes).decode()
-        href = f'<a href="data:file/zip;base64,{b64}" download="videos.zip">Download All Videos</a>'
-        st.markdown(href, unsafe_allow_html=True)
+                file_path = download_video(stream, video.title)
+                downloaded_videos.append({'title': video.title, 'file_path': file_path})
+    return downloaded_videos
 
 st.title('YouTube Playlist Downloader')
 
