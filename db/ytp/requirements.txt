@@ -1,3 +1,2 @@
 pytube==12.1.2
-rarfile==4.0
 streamlit==1.19.0
