@@ -41,8 +41,8 @@ def download_file(stream, fmt):
 
         os.remove(title)
 
-st.title('YouTube Playlist Downloader')
-
+st.title('YouTube Playlist Downloader by Codanins')
+st.text('Videos will be downloaded in two step, Download all videos')
 playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
 if not playlist_url.startswith('https://www.youtube.com/playlist?'):
     st.warning('Please enter a valid YouTube playlist URL.')
@@ -58,22 +58,10 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-col1, col2 = st.beta_columns(2)
-
-with col1:
-    if st.button('Download All Videos'):
-        downloaded_videos = download_all_videos(playlist_url, resolution)
-        st.success('All videos downloaded successfully!')
-
-with col2:
-    if st.button('Download Videos Individually'):
-        playlist = Playlist(playlist_url)
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                file_path = download_video(stream, video.title)
-                st.success(f'{video.title} downloaded successfully!')
-
+if st.button('Download All Videos'):
+    downloaded_videos = download_all_videos(playlist_url, resolution)
+    st.success('All videos downloaded successfully!')
+    
 if downloaded_videos:
     st.write('Downloaded videos:')
     for video in downloaded_videos:
@@ -83,5 +71,13 @@ if downloaded_videos:
             b64 = base64.b64encode(video_bytes).decode()
             href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
             st.markdown(href, unsafe_allow_html=True)
-        else:
-            st.warning(f'{video["title"]} does not exist.')
+            os.remove(video['file_path'])
+
+if st.button('Download Videos in One Link'):
+    playlist = Playlist(playlist_url)
+    with st.spinner(f'Downloading {playlist.title}...'):
+        for video in playlist.videos:
+            stream = video.streams.filter(res=resolution).first()
+            if stream:
+                download_file(stream, video.title)
+    st.success(f'{playlist.title} downloaded successfully! Check your Downloads folder for the files.')
