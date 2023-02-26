@@ -18,16 +18,12 @@ def download_all_videos(playlist_url, resolution):
             if stream:
                 video_path = download_video(stream, video.title)
                 video_paths.append(video_path)
-    if not video_paths:
-        st.warning(f'No videos found for resolution {resolution}.')
-        return None
-    # create a zip file containing all the video files
-    zip_path = os.path.join(os.path.expanduser('~'), f'{playlist.title}.zip')
-    with zipfile.ZipFile(zip_path, 'w') as zip_file:
-        for video_path in video_paths:
-            zip_file.write(video_path)
-            os.remove(video_path)  # delete the original video file
-    return zip_path
+    # zip all video files and return path to the zip file
+    zip_file_path = os.path.join(os.path.expanduser('~'), f'{playlist.title}.zip')
+    with ZipFile(zip_file_path, 'w') as zip_file:
+        for path in video_paths:
+            zip_file.write(path, os.path.basename(path))
+    return zip_file_path
 
 st.title('YouTube Playlist Downloader')
 
