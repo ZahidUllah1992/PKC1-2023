@@ -42,8 +42,9 @@ def download_file(stream, fmt):
         os.remove(title)
 
 st.title('YouTube Playlist Downloader by Codanins')
-st.text('Videos will be downloaded in two steps, downloding time will\
-     depends on Number of videos in playlist and Video resolution')
+st.text('Videos will be downloaded in two steps')
+st.text('downloding time will depends on Number of videos in playlist and Video resolution')
+
 playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
 if not playlist_url.startswith('https://www.youtube.com/playlist?'):
     st.warning('Please enter a valid YouTube playlist URL.')
