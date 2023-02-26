@@ -9,12 +9,7 @@ def download_video(stream, title):
     return video_path
 
 def download_all_videos(playlist_url, resolution):
-    try:
-        playlist = Playlist(playlist_url)
-    except Exception:
-        st.warning('Please enter a valid YouTube playlist URL.')
-        st.stop()
-
+    playlist = Playlist(playlist_url)
     video_paths = []
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
@@ -43,10 +38,11 @@ resolution = st.selectbox('Select video resolution:', [res['label'] for res in r
 
 if st.button('Download All Videos'):
     download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+    file_name = f'{playlist.title}.zip' if playlist else 'videos.zip'
     st.download_button(
         label='Click to download all videos',
         data=download_all_videos(playlist_url, resolution),
-        file_name=f'{playlist.title}.zip' if playlist else 'videos.zip',
+        file_name=file_name,
         mime='application/zip',
         # suggest a default download location
         # this location is only a suggestion and the user can still choose a different location
