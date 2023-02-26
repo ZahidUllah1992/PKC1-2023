@@ -1,49 +1,118 @@
-import os
-import base64
 import streamlit as st
-from pytube import Playlist, Stream
+import requests
+from pytube import YouTube, StreamQuery
+import base64
+import os
 
-def download_video(stream, title):
-    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    with st.spinner(f'Downloading {title}...'):
-        stream.download(output_path=download_folder)
-    st.success(f'{title} downloaded successfully!')
-    return os.path.join(download_folder, title + '.mp4')
+def clear_text():
+    st.session_state["url"] = ""
+    st.session_state["mime"] = ""
+    st.session_state["quality"] = ""
 
-def download_all_videos(playlist_url, resolution):
-    playlist = Playlist(playlist_url)
-    downloaded_videos = []
-    with st.spinner(f'Downloading {playlist.title}...'):
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                file_path = download_video(stream, video.title)
-                downloaded_videos.append({'title': video.title, 'file_path': file_path})
-    return downloaded_videos
+def download_file(stream, fmt):
+    """  """
+    if fmt == 'audio':
+        title = stream.title + ' audio.'+ stream_final.subtype
+    else:
+        title = stream.title + '.'+ stream_final.subtype
 
-st.title('YouTube Playlist Downloader')
+    stream.download(filename=title)
+    
+    if 'DESKTOP_SESSION' not in os.environ: #and os.environ('HOSTNAME')=='streamlit':
+    
+        with open(title, 'rb') as f:
+            bytes = f.read()
+            b64 = base64.b64encode(bytes).decode()
+            href = f'<a href="data:file/zip;base64,{b64}" download=\'{title}\'>\
+                Here is your link \
+            </a>'
+            st.markdown(href, unsafe_allow_html=True)
 
-playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
-if not playlist_url.startswith('https://www.youtube.com/playlist?'):
-    st.warning('Please enter a valid YouTube playlist URL.')
-    st.stop()
+        os.remove(title)
 
-resolutions = [
-    {'label': '720p', 'value': '720p'},
-    {'label': '480p', 'value': '480p'},
-    {'label': '360p', 'value': '360p'},
-    {'label': '240p', 'value': '240p'},
-    {'label': '144p', 'value': '144p'}
-]
 
-resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
+def can_access(url):
+    """ check whether you can access the video """
+    access = False
+    if len(url) > 0:
+        try:
+            tube = YouTube(url)
+            if tube.check_availability() is None:
+                access=True
+        except:
+            pass
+    return access
 
-if st.button('Download All Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
-    st.success('All videos downloaded successfully!')
+def refine_format(fmt_type: str='audio') -> (str, bool):
+    """ """
+    if fmt_type == 'video (only)':
+        fmt = 'video'
+        progressive = False
+    elif fmt_type == 'video + audio':
+        fmt = 'video'
+        progressive = True
+    else:
+        fmt = 'audio'
+        progressive = False
 
-if downloaded_videos:
-    st.write('Downloaded videos:')
-    for video in downloaded_videos:
-        st.write(video['title'])
-        st.markdown(f'<a href="data:file/mp4;base64,{base64.b64encode(open(video["file_path"], "rb").read()).decode()}">Download</a>', unsafe_allow_html=True)
+    return fmt, progressive
+
+
+st.set_page_config(page_title=" Youtube downloader", layout="wide")
+
+# ====== SIDEBAR ======
+with st.sidebar:
+
+    st.title("Youtube download app")
+
+    url = st.text_input("Insert your link here", key="url")
+
+    fmt_type = st.selectbox("Choose format:", ['video (only)', 'audio (only)', 'video + audio'], key='fmt')
+
+    fmt, progressive = refine_format(fmt_type)
+
+    if can_access(url):
+
+        tube = YouTube(url)
+
+        streams_fmt = [t for t in tube.streams if t.type==fmt and t.is_progressive==progressive]
+
+        mime_types = set([t.mime_type for t in streams_fmt])
+        mime_type = st.selectbox("Mime types:", mime_types, key='mime')
+
+        streams_mime = StreamQuery(streams_fmt).filter(mime_type=mime_type)
+
+        # quality is average bitrate for audio and resolution for video
+        if fmt=='audio':
+            quality = set([t.abr for t in streams_mime])
+            quality_type = st.selectbox('Choose average bitrate: ', quality, key='quality')
+            stream_quality = StreamQuery(streams_mime).filter(abr=quality_type)
+        elif fmt=='video':
+            quality = set([t.resolution for t in streams_mime])
+            quality_type = st.selectbox('Choose resolution: ', quality, key='quality')
+            stream_quality = StreamQuery(streams_mime).filter(res=quality_type)
+
+        # === Download block === #
+        if stream_quality is not None:
+            stream_final = stream_quality[0]
+            if 'DESKTOP_SESSION' in os.environ:
+                download = st.button("Download file", key='download')
+            else:
+                download = st.button("Get download link", key='download')
+
+            if download:
+                download_file(stream_final, fmt)
+                st.success('Success download!')
+                st.balloons()
+
+        st.button("Clear all address boxes", on_click=clear_text)
+
+
+
+
+# ====== MAIN PAGE ======
+
+if can_access(url):
+    if streams_fmt is None:
+        st.write(f"No {fmt_type} stream found")
+    st.video(url)
