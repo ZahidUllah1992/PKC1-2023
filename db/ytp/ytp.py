@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 from pytube import Playlist, Stream
+from zipfile import ZipFile
 
 def download_video(stream, title):
     with st.spinner(f'Downloading {title}...'):
@@ -17,7 +18,14 @@ def download_all_videos(playlist_url, resolution):
             if stream:
                 video_path = download_video(stream, video.title)
                 video_paths.append(video_path)
-    return video_paths
+
+        # Create zip file
+        zip_file_path = os.path.join(os.getcwd(), f'{playlist.title}.zip')
+        with ZipFile(zip_file_path, 'w') as zip_file:
+            for path in video_paths:
+                zip_file.write(path)
+
+    return zip_file_path
 
 st.title('YouTube Playlist Downloader')
 
@@ -40,19 +48,15 @@ if st.button('Download All Videos'):
     playlist = Playlist(playlist_url)
     if playlist:
         download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-        video_paths = download_all_videos(playlist_url, resolution)
-        with st.spinner(f'Creating ZIP file...'):
-            zip_file_path = os.path.join(download_folder, f'{playlist.title}.zip')
-            with ZipFile(zip_file_path, 'w') as zip_file:
-                for video_path in video_paths:
-                    zip_file.write(video_path, os.path.basename(video_path))
-        st.success(f'All videos downloaded and saved to {zip_file_path}.')
-        st.info('Click on the button below to download the ZIP file.')
         st.download_button(
-            label='Download ZIP file',
-            data=zip_file_path,
+            label='Click to download all videos',
+            data=download_all_videos(playlist_url, resolution),
             file_name=f'{playlist.title}.zip',
-            mime='application/zip'
+            mime='application/zip',
+            # suggest a default download location
+            # this location is only a suggestion and the user can still choose a different location
+            # depending on their browser settings
+            folder=download_folder
         )
     else:
         st.warning('Could not load playlist. Please try again later.')
