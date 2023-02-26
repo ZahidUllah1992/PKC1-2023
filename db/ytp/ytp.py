@@ -1,6 +1,7 @@
 import os
 import streamlit as st
 from pytube import Playlist, Stream
+import zipfile
 
 def download_video(stream, title):
     with st.spinner(f'Downloading {title}...'):
@@ -17,7 +18,16 @@ def download_all_videos(playlist_url, resolution):
             if stream:
                 video_path = download_video(stream, video.title)
                 video_paths.append(video_path)
-    return video_paths
+    if not video_paths:
+        st.warning(f'No videos found for resolution {resolution}.')
+        return None
+    # create a zip file containing all the video files
+    zip_path = os.path.join(os.path.expanduser('~'), f'{playlist.title}.zip')
+    with zipfile.ZipFile(zip_path, 'w') as zip_file:
+        for video_path in video_paths:
+            zip_file.write(video_path)
+            os.remove(video_path)  # delete the original video file
+    return zip_path
 
 st.title('YouTube Playlist Downloader')
 
@@ -40,15 +50,17 @@ if st.button('Download All Videos'):
     playlist = Playlist(playlist_url)
     if playlist:
         download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-        st.download_button(
-            label='Click to download all videos',
-            data=download_all_videos(playlist_url, resolution),
-            file_name=f'{playlist.title}.zip',
-            mime='application/zip',
-            # suggest a default download location
-            # this location is only a suggestion and the user can still choose a different location
-            # depending on their browser settings
-            folder=download_folder
-        )
+        zip_path = download_all_videos(playlist_url, resolution)
+        if zip_path:
+            st.download_button(
+                label='Click to download all videos',
+                data=open(zip_path, 'rb').read(),
+                file_name=os.path.basename(zip_path),
+                mime='application/zip',
+                # suggest a default download location
+                # this location is only a suggestion and the user can still choose a different location
+                # depending on their browser settings
+                folder=download_folder
+            )
     else:
         st.warning('Could not load playlist. Please try again later.')
