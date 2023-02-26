@@ -38,13 +38,15 @@ resolution = st.selectbox('Select video resolution:', [res['label'] for res in r
 
 if st.button('Download All Videos'):
     download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    st.download_button(
-        label='Click to download all videos',
-        data=download_all_videos(playlist_url, resolution),
-        file_name=f'{playlist.title}.zip',
-        mime='application/zip',
-        # suggest a default download location
-        # this location is only a suggestion and the user can still choose a different location
-        # depending on their browser settings
-        folder=download_folder
-    )
+    videos = download_all_videos(playlist_url, resolution)
+    if videos:
+        st.download_button(
+            label='Click to download all videos',
+            data=videos,
+            file_name=f'{playlist.title}.zip' if playlist else 'videos.zip',
+            mime='application/zip',
+            # suggest a default download location
+            # this location is only a suggestion and the user can still choose a different location
+            # depending on their browser settings
+            folder=download_folder
+        )
