@@ -3,40 +3,26 @@ import streamlit as st
 from zipfile import ZipFile
 from pytube import Playlist
 
-def download_all_videos(playlist_url, resolution):
-    # create playlist object
+def download_all_videos(playlist_url, resolution='720p'):
     playlist = Playlist(playlist_url)
+    playlist.populate_video_urls()
+    zip_file_path = f'{playlist.title}.zip'
 
-    # extract video urls from playlist
-    video_urls = playlist.video_urls
-
-    # create a temporary directory to store downloaded videos
-    temp_dir = "./temp"
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-
-    # download videos and save to temporary directory
-    for url in video_urls:
-        video = YouTube(url)
-        streams = video.streams.filter(res=resolution).first()
-        streams.download(temp_dir)
-
-    # create zip file of downloaded videos
-    zip_file_path = os.path.join(temp_dir, "videos.zip")
     with ZipFile(zip_file_path, 'w') as zip_file:
-        for root, dirs, files in os.walk(temp_dir):
-            for file in files:
-                zip_file.write(os.path.join(root, file),
-                               os.path.relpath(os.path.join(root, file),
-                                               os.path.join(temp_dir, '..')))
-
-    # delete temporary directory
-    for root, dirs, files in os.walk(temp_dir, topdown=False):
-        for file in files:
-            os.remove(os.path.join(root, file))
-        for dir in dirs:
-            os.rmdir(os.path.join(root, dir))
-    os.rmdir(temp_dir)
+        for url in playlist.video_urls:
+            try:
+                video = YouTube(url)
+                stream = video.streams.filter(res=resolution, file_extension='mp4').first()
+                if stream is None:
+                    st.warning(f"No '{resolution}' video available for {video.title} ({url})")
+                    continue
+                st.info(f"Downloading '{resolution}' video for {video.title} ({url})...")
+                stream.download(output_path='./', filename_prefix='temp_')
+                zip_file.write(f'temp_{stream.default_filename}')
+                os.remove(f'temp_{stream.default_filename}')
+            except Exception as e:
+                st.warning(f"Error downloading {url}: {str(e)}")
+                continue
 
     return zip_file_path
 
