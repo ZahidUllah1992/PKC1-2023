@@ -3,12 +3,6 @@ import streamlit as st
 from pytube import Playlist, Stream
 import base64
 
-def download_video(stream, title):
-    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    with st.spinner(f'Downloading {title}...'):
-        file_path = stream.download(output_path=download_folder)
-    st.success(f'{title} downloaded successfully!')
-    return file_path
 
 def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
