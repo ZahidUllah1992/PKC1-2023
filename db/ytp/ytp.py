@@ -1,4 +1,5 @@
 import os
+import zipfile
 import streamlit as st
 from pytube import Playlist, Stream
 
@@ -38,13 +39,10 @@ resolution = st.selectbox('Select video resolution:', [res['label'] for res in r
 
 if st.button('Download All Videos'):
     download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    st.download_button(
-        label='Click to download all videos',
-        data=download_all_videos(playlist_url, resolution),
-        file_name=f'{playlist.title}.zip',
-        mime='application/zip',
-        # suggest a default download location
-        # this location is only a suggestion and the user can still choose a different location
-        # depending on their browser settings
-        folder=download_folder
-    )
+    video_paths = download_all_videos(playlist_url, resolution)
+    zip_file_path = os.path.join(download_folder, f'{playlist.title}.zip')
+    with zipfile.ZipFile(zip_file_path, 'w') as zip_file:
+        for video_path in video_paths:
+            zip_file.write(video_path, os.path.basename(video_path))
+    st.success(f'All videos downloaded successfully and zipped at {zip_file_path}.')
+    st.file_download(zip_file_path)
