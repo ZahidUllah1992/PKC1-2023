@@ -44,14 +44,14 @@ if st.button('Download All Videos'):
 
 if downloaded_videos:
     st.write('Downloaded videos:')
-    video_bytes = b''
     for video in downloaded_videos:
         if os.path.exists(video['file_path']):
             with open(video['file_path'], 'rb') as f:
-                video_bytes += f.read()
+                video_bytes = f.read()
+            st.video(video_bytes)
+            b64 = base64.b64encode(video_bytes).decode()
+            href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
+            st.markdown(href, unsafe_allow_html=True)
             os.remove(video['file_path'])
         else:
             st.warning(f'{video["title"]} does not exist.')
-    b64 = base64.b64encode(video_bytes).decode()
-    href = f'<a href="data:file/mp4;base64,{b64}" download="videos.zip">Download All Videos</a>'
-    st.markdown(href, unsafe_allow_html=True)
