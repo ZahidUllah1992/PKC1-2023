@@ -1,48 +1,70 @@
 import os
-import streamlit as st
-from pytube import Playlist, Stream
+import requests
 from zipfile import ZipFile
+import streamlit as st
 
-def download_video(stream, title):
-    with st.spinner(f'Downloading {title}...'):
-        video_path = stream.download()
-    st.success(f'{title} downloaded successfully!')
-    return video_path
-
+# Define function to download videos
 def download_all_videos(playlist_url, resolution):
-    playlist = Playlist(playlist_url)
-    video_paths = []
-    with st.spinner(f'Downloading {playlist.title}...'):
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                video_path = download_video(stream, video.title)
-                video_paths.append(video_path)
+    # Set output path
+    output_path = os.path.join(os.getcwd(), "downloads")
+    os.makedirs(output_path, exist_ok=True)
 
-        # Create zip file
-        zip_file_path = os.path.join(os.getcwd(), f'{playlist.title}.zip')
-        with ZipFile(zip_file_path, 'w') as zip_file:
-            for path in video_paths:
-                zip_file.write(path)
+    # Get playlist info
+    playlist_info_url = f"{playlist_url}&pbj=1"
+    playlist_info_response = requests.get(playlist_info_url)
+    playlist_info_json = playlist_info_response.json()[1]["response"]["contents"]["twoColumnWatchNextResults"]["playlist"]["playlist"]["contents"]
+
+    # Filter out unavailable videos and get video urls
+    video_urls = []
+    for video in playlist_info_json:
+        if "unavailable" not in video["playlistPanelVideoRenderer"]["thumbnailOverlays"][0]["thumbnailOverlayResumePlaybackRenderer"]["style"]:
+            video_id = video["playlistPanelVideoRenderer"]["videoId"]
+            video_title = video["playlistPanelVideoRenderer"]["title"]["runs"][0]["text"]
+            video_url = f"https://www.youtube.com/watch?v={video_id}&pbj=1"
+            video_info_response = requests.get(video_url)
+            video_info_json = video_info_response.json()[1]["response"]["contents"]["twoColumnWatchNextResults"]["results"]["results"]["contents"][0]["videoPrimaryInfoRenderer"]
+            video_formats = video_info_json["videoPlayer"]["streamingData"]["adaptiveFormats"]
+            video_formats = [f for f in video_formats if "video/mp4" in f["mimeType"]]
+            video_formats = sorted(video_formats, key=lambda f: int(f["qualityLabel"][:-1]))
+            if resolution == "max":
+                video_format = video_formats[-1]
+            else:
+                video_format = next((f for f in video_formats if resolution in f["qualityLabel"]), None)
+            if video_format:
+                video_url = video_format["url"]
+                video_urls.append((video_title, video_url))
+
+    # Download videos and add to zip file
+    zip_file_path = os.path.join(output_path, "videos.zip")
+    with ZipFile(zip_file_path, 'w') as zip_file:
+        for video_title, video_url in video_urls:
+            video_file_path = os.path.join(output_path, f"{video_title}.mp4")
+            with open(video_file_path, 'wb') as video_file:
+                video_response = requests.get(video_url, stream=True)
+                total_length = video_response.headers.get('content-length')
+                if total_length is None:  # no content length header
+                    video_file.write(video_response.content)
+                else:
+                    downloaded = 0
+                    total_length = int(total_length)
+                    for data in video_response.iter_content(chunk_size=max(int(total_length / 1000), 1024 * 1024)):
+                        downloaded += len(data)
+                        video_file.write(data)
+                        done = int(50 * downloaded / total_length)
+                        st.progress(done/50)
+            zip_file.write(video_file_path)
 
     return zip_file_path
 
-st.title('YouTube Playlist Downloader')
+# Set up Streamlit app
+st.set_page_config(page_title="YouTube Playlist Downloader")
+st.title("YouTube Playlist Downloader")
 
-playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
-if not playlist_url.startswith('https://www.youtube.com/playlist?'):
-    st.warning('Please enter a valid YouTube playlist URL.')
-    st.stop()
+# Get user input
+playlist_url = st.text_input("Enter YouTube playlist URL:")
+resolution = st.selectbox("Select video resolution:", ["max", "1080", "720", "480", "360", "240"])
 
-resolutions = [
-    {'label': '720p', 'value': '720p'},
-    {'label': '480p', 'value': '480p'},
-    {'label': '360p', 'value': '360p'},
-    {'label': '240p', 'value': '240p'},
-    {'label': '144p', 'value': '144p'}
-]
-
-resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
+# Download videos and add to zip file
 
 if st.button('Download All Videos'):
     playlist = Playlist(playlist_url)
