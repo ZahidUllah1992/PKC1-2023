@@ -1,48 +1,46 @@
 import os
 import streamlit as st
-from zipfile import ZipFile
-from pytube import Playlist
+from pytube import Playlist, Stream
 
-def download_all_videos(playlist_url, resolution='720p'):
+def download_video(stream, title):
+    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+    with st.spinner(f'Downloading {title}...'):
+        stream.download(output_path=download_folder)
+    st.success(f'{title} downloaded successfully!')
+
+def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
-    playlist.populate_video_urls()
-    zip_file_path = f'{playlist.title}.zip'
+    downloaded_videos = []
+    with st.spinner(f'Downloading {playlist.title}...'):
+        for video in playlist.videos:
+            stream = video.streams.filter(res=resolution).first()
+            if stream:
+                download_video(stream, video.title)
+                downloaded_videos.append(video.title)
+    return downloaded_videos
 
-    with ZipFile(zip_file_path, 'w') as zip_file:
-        for url in playlist.video_urls:
-            try:
-                video = YouTube(url)
-                stream = video.streams.filter(res=resolution, file_extension='mp4').first()
-                if stream is None:
-                    st.warning(f"No '{resolution}' video available for {video.title} ({url})")
-                    continue
-                st.info(f"Downloading '{resolution}' video for {video.title} ({url})...")
-                stream.download(output_path='./', filename_prefix='temp_')
-                zip_file.write(f'temp_{stream.default_filename}')
-                os.remove(f'temp_{stream.default_filename}')
-            except Exception as e:
-                st.warning(f"Error downloading {url}: {str(e)}")
-                continue
+st.title('YouTube Playlist Downloader')
 
-    return zip_file_path
+playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
+if not playlist_url.startswith('https://www.youtube.com/playlist?'):
+    st.warning('Please enter a valid YouTube playlist URL.')
+    st.stop()
 
-# Set up the Streamlit app
-st.set_page_config(page_title="YouTube Playlist Downloader")
+resolutions = [
+    {'label': '720p', 'value': '720p'},
+    {'label': '480p', 'value': '480p'},
+    {'label': '360p', 'value': '360p'},
+    {'label': '240p', 'value': '240p'},
+    {'label': '144p', 'value': '144p'}
+]
 
-# Set the title of the app
-st.title("YouTube Playlist Downloader")
+resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-# Get the YouTube playlist URL from the user
-playlist_url = st.text_input("Enter the YouTube playlist URL")
+if st.button('Download All Videos'):
+    downloaded_videos = download_all_videos(playlist_url, resolution)
+    st.success('All videos downloaded successfully!')
 
-# Get the desired resolution from the user
-resolution = st.selectbox("Select the desired resolution",
-                          ["360p", "720p", "1080p"])
-
-# Add a download button to download the videos
-if st.button("Download"):
-    zip_file_path = download_all_videos(playlist_url, resolution)
-    with open(zip_file_path, "rb") as f:
-        bytes_data = f.read()
-        st.download_button(label="Download videos", data=bytes_data, 
-                           file_name="videos.zip", mime="application/zip")
+if downloaded_videos:
+    st.write('Downloaded videos:')
+    for video in downloaded_videos:
+        st.write(video)
