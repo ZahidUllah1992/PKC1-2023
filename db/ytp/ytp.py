@@ -1,8 +1,7 @@
-import streamlit as st
-import requests
-from pytube import YouTube, StreamQuery, Playlist
-import base64
 import os
+import streamlit as st
+import base64
+from pytube import Playlist
 
 def clear_text():
     st.session_state["url"] = ""
@@ -12,9 +11,9 @@ def clear_text():
 def download_file(stream, fmt):
     """  """
     if fmt == 'audio':
-        title = stream.title + ' audio.'+ stream.subtype
+        title = stream.title + ' audio.'+ stream_final.subtype
     else:
-        title = stream.title + '.'+ stream.subtype
+        title = stream.title + '.'+ stream_final.subtype
 
     stream.download(filename=title)
     
@@ -36,21 +35,20 @@ def can_access(url):
     access = False
     if len(url) > 0:
         try:
-            Playlist(url)
-            access=True
+            playlist = Playlist(url)
+            playlist.populate_video_urls()
+            access = True
         except:
             pass
     return access
 
-def refine_format() -> (str, bool):
+def refine_format(fmt_type: str='video + audio') -> (str, bool):
     """ """
     fmt = 'video'
-    progressive = True
-
+    progressive = True if fmt_type == 'video + audio' else False
     return fmt, progressive
 
-
-st.set_page_config(page_title="Youtube downloader", layout="wide")
+st.set_page_config(page_title=" Youtube downloader", layout="wide")
 
 # ====== SIDEBAR ======
 with st.sidebar:
@@ -59,7 +57,9 @@ with st.sidebar:
 
     url = st.text_input("Insert your playlist link here", key="url")
 
-    fmt, progressive = refine_format()
+    fmt_type = st.selectbox("Choose format:", ['video + audio'], key='fmt')
+
+    fmt, progressive = refine_format(fmt_type)
 
     if can_access(url):
 
@@ -67,24 +67,22 @@ with st.sidebar:
         playlist.populate_video_urls()
 
         mime_types = set([t.mime_type for t in playlist.videos[0].streams])
-        mime_type = st.selectbox("Select a file type:", list(mime_types), key="mime")
-        
-        quality_values = [s.resolution for s in playlist.videos[0].streams if s.mime_type == mime_type]
-        quality = st.selectbox("Select a quality:", quality_values, key="quality")
-        
-        selected_streams = [s for s in playlist.videos[0].streams if s.mime_type == mime_type and s.resolution == quality]
-        
-        if len(selected_streams) > 0:
-            st.write("Selected video stream:", selected_streams[0])
-            st.write("Download starts...")
-            download_file(selected_streams[0], fmt)
-            st.write("Download finished.")
-        
-        else:
-            st.write("No video stream found for the selected quality.")
-    
-    else:
-        st.write("Invalid URL.")
-    
-    if st.button("Clear"):
-        clear_text()
+        mime_type = st.selectbox("Mime types:", mime_types, key='mime')
+
+        streams_mime = playlist.videos[0].streams.filter(mime_type=mime_type)
+
+        # quality is average bitrate for audio and resolution for video
+        if fmt=='audio':
+            quality = set([t.abr for t in streams_mime])
+            quality_type = st.selectbox('Choose average bitrate: ', quality, key='quality')
+            stream_quality = streams_mime.filter(abr=quality_type)
+        elif fmt=='video':
+            quality = set([t.resolution for t in streams_mime])
+            quality_type = st.selectbox('Choose resolution: ', quality, key='quality')
+            stream_quality = streams_mime.filter(res=quality_type)
+
+        # === Download block === #
+        if stream_quality is not None:
+            for i, video in enumerate(playlist.videos):
+                st.write(f"Downloading video {i+1} of {len(playlist)}: {video.title}")
+                stream_final = stream_quality.get_highest_resolution
