@@ -1,15 +1,10 @@
 import os
 import streamlit as st
+from pytube import Playlist, Stream
 import base64
-from pytube import Playlist
-
-def clear_text():
-    st.session_state["url"] = ""
-    st.session_state["mime"] = ""
-    st.session_state["quality"] = ""
 
 def download_file(stream, fmt):
-    """  """
+    """Downloads a video or audio stream and generates a download link."""
     if fmt == 'audio':
         title = stream.title + ' audio.'+ stream_final.subtype
     else:
@@ -17,8 +12,7 @@ def download_file(stream, fmt):
 
     stream.download(filename=title)
     
-    if 'DESKTOP_SESSION' not in os.environ: #and os.environ('HOSTNAME')=='streamlit':
-    
+    if 'DESKTOP_SESSION' not in os.environ:
         with open(title, 'rb') as f:
             bytes = f.read()
             b64 = base64.b64encode(bytes).decode()
@@ -29,60 +23,41 @@ def download_file(stream, fmt):
 
         os.remove(title)
 
+def download_all_videos(playlist_url, resolution):
+    """Downloads all videos in a playlist with the given resolution."""
+    playlist = Playlist(playlist_url)
+    downloaded_videos = []
+    with st.spinner(f'Downloading {playlist.title}...'):
+        for video in playlist.videos:
+            stream = video.streams.filter(res=resolution).first()
+            if stream:
+                download_file(stream, 'video')
+                downloaded_videos.append(video.title)
+                st.write(f'Download link for {video.title}:')
+    return downloaded_videos
 
-def can_access(url):
-    """ check whether you can access the video """
-    access = False
-    if len(url) > 0:
-        try:
-            playlist = Playlist(url)
-            playlist.populate_video_urls()
-            access = True
-        except:
-            pass
-    return access
+st.title('YouTube Playlist Downloader')
 
-def refine_format(fmt_type: str='video + audio') -> (str, bool):
-    """ """
-    fmt = 'video'
-    progressive = True if fmt_type == 'video + audio' else False
-    return fmt, progressive
+playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
+if not playlist_url.startswith('https://www.youtube.com/playlist?'):
+    st.warning('Please enter a valid YouTube playlist URL.')
+    st.stop()
 
-st.set_page_config(page_title=" Youtube downloader", layout="wide")
+resolutions = [
+    {'label': '720p', 'value': '720p'},
+    {'label': '480p', 'value': '480p'},
+    {'label': '360p', 'value': '360p'},
+    {'label': '240p', 'value': '240p'},
+    {'label': '144p', 'value': '144p'}
+]
 
-# ====== SIDEBAR ======
-with st.sidebar:
+resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-    st.title("Youtube download app")
+if st.button('Download All Videos'):
+    downloaded_videos = download_all_videos(playlist_url, resolution)
+    st.success('All videos downloaded successfully!')
 
-    url = st.text_input("Insert your playlist link here", key="url")
-
-    fmt_type = st.selectbox("Choose format:", ['video + audio'], key='fmt')
-
-    fmt, progressive = refine_format(fmt_type)
-
-    if can_access(url):
-
-        playlist = Playlist(url)
-        playlist.populate_video_urls()
-
-        mime_types = set([t.mime_type for t in playlist.videos[0].streams])
-        mime_type = st.selectbox("Mime types:", mime_types, key='mime')
-
-        streams_mime = playlist.videos[0].streams.filter(mime_type=mime_type)
-
-        # quality is average bitrate for audio and resolution for video
-        if fmt=='audio':
-            quality = set([t.abr for t in streams_mime])
-            quality_type = st.selectbox('Choose average bitrate: ', quality, key='quality')
-            stream_quality = streams_mime.filter(abr=quality_type)
-        elif fmt=='video':
-            quality = set([t.resolution for t in streams_mime])
-            quality_type = st.selectbox('Choose resolution: ', quality, key='quality')
-            stream_quality = streams_mime.filter(res=quality_type)
-
-        # === Download block === #
-        if stream_quality is not None:
-            for i, video in enumerate(playlist.videos):
-                st.write(f"Downloading video {i+1} of {len(playlist)}: {video.title}")
-                stream_final = stream_quality.get_highest_resolution
+if downloaded_videos:
+    st.write('Downloaded videos:')
+    for video in downloaded_videos:
+        st.write(video)
