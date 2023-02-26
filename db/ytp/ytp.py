@@ -58,10 +58,22 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-if st.button('Download All Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
-    st.success('All videos downloaded successfully!')
-    
+col1, col2 = st.beta_columns(2)
+
+with col1:
+    if st.button('Download All Videos'):
+        downloaded_videos = download_all_videos(playlist_url, resolution)
+        st.success('All videos downloaded successfully!')
+
+with col2:
+    if st.button('Download Videos Individually'):
+        playlist = Playlist(playlist_url)
+        for video in playlist.videos:
+            stream = video.streams.filter(res=resolution).first()
+            if stream:
+                file_path = download_video(stream, video.title)
+                st.success(f'{video.title} downloaded successfully!')
+
 if downloaded_videos:
     st.write('Downloaded videos:')
     for video in downloaded_videos:
@@ -71,13 +83,5 @@ if downloaded_videos:
             b64 = base64.b64encode(video_bytes).decode()
             href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
             st.markdown(href, unsafe_allow_html=True)
-            os.remove(video['file_path'])
-
-if st.button('Download Videos in One Link'):
-    playlist = Playlist(playlist_url)
-    with st.spinner(f'Downloading {playlist.title}...'):
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                download_file(stream, video.title)
-    st.success(f'{playlist.title} downloaded successfully! Check your Downloads folder for the files.')
+        else:
+            st.warning(f'{video["title"]} does not exist.')
