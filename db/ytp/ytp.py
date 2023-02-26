@@ -9,6 +9,8 @@ def download_video(stream, title):
     st.success(f'{title} downloaded successfully!')
     return video_path
 
+from zipfile import ZipFile
+
 def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
     video_paths = []
@@ -18,13 +20,13 @@ def download_all_videos(playlist_url, resolution):
             if stream:
                 video_path = download_video(stream, video.title)
                 video_paths.append(video_path)
-    # zip all video files and return path to the zip file
-    zip_file_path = os.path.join(os.path.expanduser('~'), f'{playlist.title}.zip')
+    # Define the path and filename for the zip file
+    zip_file_path = os.path.join(os.path.expanduser('~'), 'Downloads', f'{playlist.title}.zip')
     with ZipFile(zip_file_path, 'w') as zip_file:
-        for path in video_paths:
-            zip_file.write(path, os.path.basename(path))
+        for video_path in video_paths:
+            # Add each video file to the zip file
+            zip_file.write(video_path, os.path.basename(video_path))
     return zip_file_path
-
 st.title('YouTube Playlist Downloader')
 
 playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
