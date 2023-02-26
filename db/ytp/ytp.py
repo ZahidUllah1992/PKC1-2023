@@ -1,46 +1,50 @@
+import os
 import streamlit as st
-import pandas as pd
-from pytube import YouTube
-from pytube import Playlist
-import base64
-from io import BytesIO
+from pytube import Playlist, Stream
 
-# adding a title for the app
-st.title("Youtube Downloader")
-st.write("## This app is only for educational purpose")
-# here is the youtube channel link to our complete courses on Python fro data science
-st.write("### Learn Data Science with python and R in Urdu or Hindi from here: [Codanics Youtube Channel Link](https://www.youtube.com/@Codanics)")
-def main():
-	path = st.text_input('Enter URL of any youtube video or playlist')
-	option = st.selectbox(
-     'Select type of download',
-     ('audio', 'highest_resolution', 'lowest_resolution'))
-	
-	matches = ['audio', 'highest_resolution', 'lowest_resolution']
-	if st.button("download"): 
-		if "playlist" in path:
-			playlist = Playlist(path)
-			for video_url in playlist.video_urls:
-				video_object =  YouTube(video_url)
-				st.write("Title of Video: " + str(video_object.title))
-				st.write("Number of Views: " + str(video_object.views))
-				if option=='audio':
-					video_object.streams.get_audio_only().download() 		#base64.b64encode("if file is too large").decode()	
-				elif option=='highest_resolution':
-					video_object.streams.get_highest_resolution().download()
-				elif option=='lowest_resolution':
-					video_object.streams.get_lowest_resolution().download()
-		else:
-			video_object =  YouTube(path)
-			st.write("Title of Video: " + str(video_object.title))
-			st.write("Number of Views: " + str(video_object.views))
-			if option=='audio':
-				video_object.streams.get_audio_only().download() 		#base64.b64encode("if file is too large").decode()	
-			elif option=='highest_resolution':
-				video_object.streams.get_highest_resolution().download()
-			elif option=='lowest_resolution':
-				video_object.streams.get_lowest_resolution().download()
-	if st.button("view"): 
-		st.video(path) 
-if __name__ == '__main__':
-	main()
+def download_video(stream, title):
+    with st.spinner(f'Downloading {title}...'):
+        video_path = stream.download()
+    st.success(f'{title} downloaded successfully!')
+    return video_path
+
+def download_all_videos(playlist_url, resolution):
+    playlist = Playlist(playlist_url)
+    video_paths = []
+    with st.spinner(f'Downloading {playlist.title}...'):
+        for video in playlist.videos:
+            stream = video.streams.filter(res=resolution).first()
+            if stream:
+                video_path = download_video(stream, video.title)
+                video_paths.append(video_path)
+    return video_paths
+
+st.title('YouTube Playlist Downloader')
+
+playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
+if not playlist_url.startswith('https://www.youtube.com/playlist?'):
+    st.warning('Please enter a valid YouTube playlist URL.')
+    st.stop()
+
+resolutions = [
+    {'label': '720p', 'value': '720p'},
+    {'label': '480p', 'value': '480p'},
+    {'label': '360p', 'value': '360p'},
+    {'label': '240p', 'value': '240p'},
+    {'label': '144p', 'value': '144p'}
+]
+
+resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
+
+if st.button('Download All Videos'):
+    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+    st.download_button(
+        label='Click to download all videos',
+        data=download_all_videos(playlist_url, resolution),
+        file_name=f'{playlist.title}.zip',
+        mime='application/zip',
+        # suggest a default download location
+        # this location is only a suggestion and the user can still choose a different location
+        # depending on their browser settings
+        folder=download_folder
+    )
