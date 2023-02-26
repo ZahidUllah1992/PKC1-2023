@@ -18,8 +18,9 @@ def download_all_videos(playlist_url, resolution):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
             if stream:
-                download_video(stream, video.title)
-                downloaded_videos.append(video.title)
+                download_folder = os.path.join(os.getcwd(), 'videos')
+                video_file = stream.download(output_path=download_folder)
+                downloaded_videos.append(video_file)
     return downloaded_videos
 
 st.title('YouTube Playlist Downloader')
@@ -48,3 +49,14 @@ if st.button('Download All Videos'):
     for video in downloaded_videos:
         st.markdown(f"* [{video}]({streamlit.static(f'videos/{video}.mp4')})")
 
+if downloaded_videos:
+    st.write('Downloaded videos:')
+    for video_file in downloaded_videos:
+        filename = os.path.basename(video_file)
+        st.write(f'{filename}')
+        st.download_button(
+            label='Download Video',
+            data=open(video_file, 'rb').read(),
+            file_name=filename,
+            mime='video/mp4'
+        )
