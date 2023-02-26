@@ -1,21 +1,19 @@
 import os
 import streamlit as st
 from pytube import Playlist, Stream
-
-def download_video(stream, title):
-    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+def download_video(stream, title, download_dir):
     with st.spinner(f'Downloading {title}...'):
-        stream.download(output_path=download_folder)
+        stream.download(output_path=download_dir)
     st.success(f'{title} downloaded successfully!')
 
-def download_all_videos(playlist_url, resolution):
+def download_all_videos(playlist_url, resolution, download_dir):
     playlist = Playlist(playlist_url)
     downloaded_videos = []
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
             if stream:
-                download_video(stream, video.title)
+                download_video(stream, video.title, download_dir)
                 downloaded_videos.append(video.title)
     return downloaded_videos
 
@@ -36,8 +34,13 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
+download_dir = st.text_input('Enter the download directory:')
+if not os.path.exists(download_dir):
+    st.warning('Please enter a valid directory path.')
+    st.stop()
+
 if st.button('Download All Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
+    downloaded_videos = download_all_videos(playlist_url, resolution, download_dir)
     st.success('All videos downloaded successfully!')
 
 if downloaded_videos:
