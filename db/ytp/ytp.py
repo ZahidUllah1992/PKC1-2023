@@ -9,24 +9,7 @@ def download_video(stream, title):
         file_path = stream.download(output_path=download_folder)
     st.success(f'{title} downloaded successfully!')
     return file_path
-def download_file(stream, fmt):
-    if fmt == 'audio':
-        title = stream.title + '_audio.'+ stream.subtype
-    else:
-        title = stream.title + '.'+ stream.subtype
 
-    stream.download(filename=title)
-    
-    if 'DESKTOP_SESSION' not in os.environ:
-        with open(title, 'rb') as f:
-            bytes = f.read()
-            b64 = base64.b64encode(bytes).decode()
-            href = f'<a href="data:file/mp4;base64,{b64}" download=\'{title}\'>\
-                Here is your link \
-            </a>'
-            st.markdown(href, unsafe_allow_html=True)
-
-        os.remove(title)
 def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
     downloaded_videos = []
