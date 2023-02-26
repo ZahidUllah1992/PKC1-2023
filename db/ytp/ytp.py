@@ -3,6 +3,12 @@ import streamlit as st
 from pytube import Playlist, Stream
 import base64
 
+def download_video(stream, title):
+    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
+    with st.spinner(f'Downloading {title}...'):
+        file_path = stream.download(output_path=download_folder)
+    st.success(f'{title} downloaded successfully!')
+    return file_path
 
 def download_all_videos(playlist_url, resolution):
     playlist = Playlist(playlist_url)
@@ -42,10 +48,8 @@ if downloaded_videos:
         if os.path.exists(video['file_path']):
             with open(video['file_path'], 'rb') as f:
                 video_bytes = f.read()
-            st.video(video_bytes)
             b64 = base64.b64encode(video_bytes).decode()
             href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
             st.markdown(href, unsafe_allow_html=True)
-            os.remove(video['file_path'])
         else:
             st.warning(f'{video["title"]} does not exist.')
