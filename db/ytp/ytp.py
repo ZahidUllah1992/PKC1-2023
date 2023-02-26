@@ -42,7 +42,8 @@ def download_file(stream, fmt):
         os.remove(title)
 
 st.title('YouTube Playlist Downloader by Codanins')
-st.text('Videos will be downloaded in two step, Download all videos')
+st.text('Videos will be downloaded in two steps, downloding time will\
+     depends on Number of videos in playlist and Video resolution')
 playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
 if not playlist_url.startswith('https://www.youtube.com/playlist?'):
     st.warning('Please enter a valid YouTube playlist URL.')
@@ -58,7 +59,7 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-if st.button('Download All Videos'):
+if st.button('Download All Videos to App Server'):
     downloaded_videos = download_all_videos(playlist_url, resolution)
     st.success('All videos downloaded successfully!')
     
@@ -73,7 +74,7 @@ if downloaded_videos:
             st.markdown(href, unsafe_allow_html=True)
             os.remove(video['file_path'])
 
-if st.button('Download Videos in One Link'):
+if st.button('Download Videos in One local server'):
     playlist = Playlist(playlist_url)
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
