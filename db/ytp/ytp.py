@@ -31,35 +31,36 @@ if ok_button:
         st.warning('Please enter a valid YouTube playlist URL.')
         st.stop()
 
-    # Rest of the code to download videos from the playlist
+    resolutions = [
+        {'label': '1080p', 'value': '1080p'},
+        {'label': '720p', 'value': '720p'},
+        {'label': '480p', 'value': '480p'},
+        {'label': '360p', 'value': '360p'},
+        {'label': '240p', 'value': '240p'},
+        {'label': '144p', 'value': '144p'}
+    ]
 
-resolutions = [
-    {'label': '1080p', 'value': '1080p'},
-    {'label': '720p', 'value': '720p'},
-    {'label': '480p', 'value': '480p'},
-    {'label': '360p', 'value': '360p'},
-    {'label': '240p', 'value': '240p'},
-    {'label': '144p', 'value': '144p'}
-]
+    resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
+    if st.button('Download All Videos'):
+        downloaded_videos = download_all_videos(playlist_url, resolution)
+        st.success('All videos downloaded successfully!')
 
-if st.button('Download All Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
-    st.success('All videos downloaded successfully! on server')
-st.write('Wait for few seconds to get downloaded video link')
+    st.write('Wait for few seconds to get the download link')
+
+   
 if st.button('Download Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
-    if not downloaded_videos:
-        st.error('Failed to download videos. Please check the playlist URL and try again.')
-if downloaded_videos:
-    st.write('Downloaded videos:')
-    for video in downloaded_videos:
-        if os.path.exists(video['file_path']):
-            with open(video['file_path'], 'rb') as f:
-                video_bytes = f.read()
-            b64 = base64.b64encode(video_bytes).decode()
-            href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
-            st.markdown(href, unsafe_allow_html=True)
+        downloaded_videos = download_all_videos(playlist_url, resolution)
+        if not downloaded_videos:
+            st.error('Failed to download videos. Please check the playlist URL and try again.')
         else:
-            st.warning(f'{video["title"]} does not exist.')
+            st.write('Downloaded videos:')
+            for video in downloaded_videos:
+                if os.path.exists(video['file_path']):
+                    with open(video['file_path'], 'rb') as f:
+                        video_bytes = f.read()
+                    b64 = base64.b64encode(video_bytes).decode()
+                    href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
+                    st.markdown(href, unsafe_allow_html=True)
+                else:
+                    st.warning(f'{video["title"]} does not exist.')
