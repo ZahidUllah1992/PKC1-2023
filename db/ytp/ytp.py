@@ -1,63 +1,65 @@
 import os
 import streamlit as st
-from pytube import Playlist, Stream
-import base64
+from pytube import YouTube, Playlist
+from typing import List, Optional
 
-def download_video(stream, title):
-    download_folder = os.path.join(os.path.expanduser('~'), 'Downloads')
-    with st.spinner(f'Downloading {title}...'):
-        file_path = stream.download(output_path=download_folder)
-    st.success(f'{title} downloaded successfully!')
-    return file_path
-
-def download_all_videos(playlist_url, resolution):
-    playlist = Playlist(playlist_url)
-    downloaded_videos = []
-    with st.spinner(f'Downloading {playlist.title}...'):
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                file_path = download_video(stream, video.title)
-                downloaded_videos.append({'title': video.title, 'file_path': file_path})
-    return downloaded_videos
-
-st.title('YouTube Playlist Downloader')
-
-playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
-if not playlist_url.startswith('https://www.youtube.com/playlist?'):
-    st.warning('Please enter a valid YouTube playlist URL.')
-    st.stop()
-
-resolutions = [
-    {'label': '1080p', 'value': '1080p'},
-    {'label': '720p', 'value': '720p'},
-    {'label': '480p', 'value': '480p'},
-    {'label': '360p', 'value': '360p'},
-    {'label': '240p', 'value': '240p'},
-    {'label': '144p', 'value': '144p'}
-]
-
-resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
-
-if st.button('Download All Videos'):
-    downloaded_videos = download_all_videos(playlist_url, resolution)
-    if downloaded_videos:
-        st.success('All videos downloaded successfully!')
-    else:
-        st.warning('No videos were downloaded.')
-else:
-    downloaded_videos = []
-
-if downloaded_videos:
-    st.write('Downloaded videos:')
-    for video in downloaded_videos:
-        if os.path.exists(video['file_path']):
-            with open(video['file_path'], 'rb') as f:
-                video_bytes = f.read()
-            st.video(video_bytes)
-            b64 = base64.b64encode(video_bytes).decode()
-            href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
-            st.markdown(href, unsafe_allow_html=True)
-            os.remove(video['file_path'])
+def download_video(yt: YouTube, resolution: Optional[str] = None) -> None:
+    """
+    Downloads a YouTube video.
+    
+    Args:
+        yt (YouTube): A YouTube video object.
+        resolution (Optional[str]): The resolution of the video to download (e.g. "720p", "480p", "360p").
+    """
+    try:
+        if resolution:
+            stream = yt.streams.filter(res=resolution).first()
         else:
-            st.warning(f'{video["title"]} does not exist.')
+            stream = yt.streams.get_highest_resolution()
+        
+        if not stream:
+            st.warning(f"No stream found for {yt.title}")
+            return
+        
+        stream.download(output_path="downloads/")
+        st.success(f"Downloaded {yt.title}")
+    except Exception as e:
+        st.error(f"Error downloading {yt.title}: {e}")
+    
+def download_all_videos(playlist_url: str, resolution: Optional[str] = None) -> None:
+    """
+    Downloads all videos in a YouTube playlist.
+    
+    Args:
+        playlist_url (str): The URL of the YouTube playlist.
+        resolution (Optional[str]): The resolution of the videos to download (e.g. "720p", "480p", "360p").
+    """
+    playlist = Playlist(playlist_url)
+    playlist._video_regex = re.compile(r"\"url\":\"(/watch\?v=[\w-]*)")
+    downloaded_videos = []
+    
+    for video_url in playlist.video_urls:
+        try:
+            video = YouTube(video_url)
+            download_video(video, resolution)
+            downloaded_videos.append(video.title)
+        except Exception as e:
+            st.error(f"Error downloading {video_url}: {e}")
+    
+    st.success(f"Downloaded {len(downloaded_videos)} videos: {', '.join(downloaded_videos)}")
+    
+def main():
+    st.set_page_config(page_title="YouTube Playlist Downloader", page_icon=":arrow_down:")
+    st.title("YouTube Playlist Downloader")
+    
+    playlist_url = st.text_input("Enter the URL of the YouTube playlist:")
+    resolution = st.selectbox("Select the resolution of the videos to download:", ["", "720p", "480p", "360p"])
+    
+    if st.button("Download"):
+        if not playlist_url:
+            st.warning("Please enter a playlist URL.")
+        else:
+            download_all_videos(playlist_url, resolution)
+
+if __name__ == "__main__":
+    main()
