@@ -75,7 +75,7 @@ if downloaded_videos:
             st.markdown(href, unsafe_allow_html=True)
             os.remove(video['file_path'])
 
-if st.button('Download Videos all by One click'):
+if st.button('Download Videos in One '):
     playlist = Playlist(playlist_url)
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
