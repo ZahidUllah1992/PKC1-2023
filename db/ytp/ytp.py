@@ -24,9 +24,14 @@ def download_all_videos(playlist_url, resolution):
 st.title('YouTube Playlist Downloader by Codanics')
 
 playlist_url = st.text_input('Enter the URL of the YouTube playlist:')
-if not playlist_url.startswith('https://www.youtube.com/playlist?'):
-    st.warning('Please enter a valid YouTube playlist URL.')
-    st.stop()
+ok_button = st.button('OK')
+
+if ok_button:
+    if not playlist_url.startswith('https://www.youtube.com/playlist?'):
+        st.warning('Please enter a valid YouTube playlist URL.')
+        st.stop()
+
+    # Rest of the code to download videos from the playlist
 
 resolutions = [
     {'label': '1080p', 'value': '1080p'},
@@ -42,7 +47,7 @@ resolution = st.selectbox('Select video resolution:', [res['label'] for res in r
 if st.button('Download All Videos'):
     downloaded_videos = download_all_videos(playlist_url, resolution)
     st.success('All videos downloaded successfully! on server')
-st.write('Wait for few seconds, depending on video sizes')
+st.write('Wait for few seconds to get downloaded video link')
 if downloaded_videos:
     st.write('Downloaded videos:')
     for video in downloaded_videos:
