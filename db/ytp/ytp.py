@@ -16,13 +16,10 @@ def download_all_videos(playlist_url, resolution):
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
-            if not stream:
-                st.warning(f'{video.title} does not have a {resolution} stream, skipping...')
-                continue
-            file_path = download_video(stream, video.title)
-            downloaded_videos.append({'title': video.title, 'file_path': file_path})
+            if stream:
+                file_path = download_video(stream, video.title)
+                downloaded_videos.append({'title': video.title, 'file_path': file_path})
     return downloaded_videos
-
 
 st.title('YouTube Playlist Downloader')
 
@@ -44,7 +41,12 @@ resolution = st.selectbox('Select video resolution:', [res['label'] for res in r
 
 if st.button('Download All Videos'):
     downloaded_videos = download_all_videos(playlist_url, resolution)
-    st.success('All videos downloaded successfully!')
+    if downloaded_videos:
+        st.success('All videos downloaded successfully!')
+    else:
+        st.warning('No videos were downloaded.')
+else:
+    downloaded_videos = []
 
 if downloaded_videos:
     st.write('Downloaded videos:')
