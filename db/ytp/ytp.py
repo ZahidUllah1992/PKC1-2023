@@ -56,4 +56,3 @@ if downloaded_videos:
             os.remove(video['file_path'])
         else:
             st.warning(f'{video["title"]} does not exist.')
-
