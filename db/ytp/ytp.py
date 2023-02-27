@@ -29,6 +29,7 @@ if not playlist_url.startswith('https://www.youtube.com/playlist?'):
     st.stop()
 
 resolutions = [
+    {'label': '1080p', 'value': '1080p'},
     {'label': '720p', 'value': '720p'},
     {'label': '480p', 'value': '480p'},
     {'label': '360p', 'value': '360p'},
@@ -55,3 +56,4 @@ if downloaded_videos:
             os.remove(video['file_path'])
         else:
             st.warning(f'{video["title"]} does not exist.')
+
