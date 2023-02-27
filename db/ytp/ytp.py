@@ -48,6 +48,10 @@ if st.button('Download All Videos'):
     downloaded_videos = download_all_videos(playlist_url, resolution)
     st.success('All videos downloaded successfully! on server')
 st.write('Wait for few seconds to get downloaded video link')
+if st.button('Download Videos'):
+    downloaded_videos = download_all_videos(playlist_url, resolution)
+    if not downloaded_videos:
+        st.error('Failed to download videos. Please check the playlist URL and try again.')
 if downloaded_videos:
     st.write('Downloaded videos:')
     for video in downloaded_videos:
