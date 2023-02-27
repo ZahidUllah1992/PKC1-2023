@@ -16,10 +16,11 @@ def download_all_videos(playlist_url, resolution):
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
-            if stream:
+            if stream is not None:
                 file_path = download_video(stream, video.title)
                 downloaded_videos.append({'title': video.title, 'file_path': file_path})
     return downloaded_videos
+
 
 def download_file(stream, fmt):
     """  """
