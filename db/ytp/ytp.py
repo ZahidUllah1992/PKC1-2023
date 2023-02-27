@@ -61,6 +61,7 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
+downloaded_videos = []
 if st.button('Download All Videos to App Server'):
     downloaded_videos = download_all_videos(playlist_url, resolution)
     st.success('All videos downloaded successfully!')
