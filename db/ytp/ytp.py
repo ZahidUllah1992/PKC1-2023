@@ -55,11 +55,11 @@ if st.button('Download Videos'):
 if downloaded_videos:
     st.write('Downloaded videos:')
     for video in downloaded_videos:
-        try:
-            with open(video, 'rb') as f:
+        if os.path.exists(video['file_path']):
+            with open(video['file_path'], 'rb') as f:
                 video_bytes = f.read()
-            b64_video = base64.b64encode(video_bytes).decode()
-            href = f'<a href="data:file/mp4;base64,{b64_video}" download="{os.path.basename(video)}">Download Video</a>'
+            b64 = base64.b64encode(video_bytes).decode()
+            href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
             st.markdown(href, unsafe_allow_html=True)
-        except:
-            st.warning(f"Unable to create download link for {video}")
+        else:
+            st.warning(f'{video["title"]} does not exist.')
