@@ -16,31 +16,10 @@ def download_all_videos(playlist_url, resolution):
     with st.spinner(f'Downloading {playlist.title}...'):
         for video in playlist.videos:
             stream = video.streams.filter(res=resolution).first()
-            if stream is not None:
+            if stream:
                 file_path = download_video(stream, video.title)
                 downloaded_videos.append({'title': video.title, 'file_path': file_path})
     return downloaded_videos
-
-
-def download_file(stream, fmt):
-    """  """
-    if fmt == 'audio':
-        title = stream.title + ' audio.'+ stream_final.subtype
-    else:
-        title = stream.title + '.'+ stream_final.subtype
-
-    stream.download(filename=title)
-    
-    if 'DESKTOP_SESSION' not in os.environ:
-        with open(title, 'rb') as f:
-            bytes = f.read()
-            b64 = base64.b64encode(bytes).decode()
-            href = f'<a href="data:file/zip;base64,{b64}" download=\'{title}\'>\
-                Here is your link \
-            </a>'
-            st.markdown(href, unsafe_allow_html=True)
-
-        os.remove(title)
 
 st.title('YouTube Playlist Downloader')
 
@@ -59,21 +38,9 @@ resolutions = [
 
 resolution = st.selectbox('Select video resolution:', [res['label'] for res in resolutions])
 
-col1, col2 = st.beta_columns(2)
-
-with col1:
-    if st.button('Download All Videos'):
-        downloaded_videos = download_all_videos(playlist_url, resolution)
-        st.success('All videos downloaded successfully!')
-
-with col2:
-    if st.button('Download Videos Individually'):
-        playlist = Playlist(playlist_url)
-        for video in playlist.videos:
-            stream = video.streams.filter(res=resolution).first()
-            if stream:
-                file_path = download_video(stream, video.title)
-                st.success(f'{video.title} downloaded successfully!')
+if st.button('Download All Videos'):
+    downloaded_videos = download_all_videos(playlist_url, resolution)
+    st.success('All videos downloaded successfully!')
 
 if downloaded_videos:
     st.write('Downloaded videos:')
@@ -81,8 +48,10 @@ if downloaded_videos:
         if os.path.exists(video['file_path']):
             with open(video['file_path'], 'rb') as f:
                 video_bytes = f.read()
+            st.video(video_bytes)
             b64 = base64.b64encode(video_bytes).decode()
             href = f'<a href="data:file/mp4;base64,{b64}" download="{video["title"]}.mp4">Download {video["title"]}</a>'
             st.markdown(href, unsafe_allow_html=True)
+            os.remove(video['file_path'])
         else:
             st.warning(f'{video["title"]} does not exist.')
